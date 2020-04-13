@@ -9,7 +9,7 @@ Pod::Spec.new do |s|
 
   s.ios.deployment_target = '10.0'
 
-  s.dependency 'BitcoinKit', :git => 'https://github.com/FaJieDeng/BitcoinKit.git', :tag => 'v1.1.1-dfj'
+  s.dependency = {'BitcoinKit', :git => 'https://github.com/FaJieDeng/BitcoinKit.git', :tag => 'v1.1.1-dfj'}
 
 
   s.source_files = 'Crypto/Crypto/**/*.swift'
