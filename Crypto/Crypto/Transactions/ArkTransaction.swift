@@ -1,4 +1,4 @@
-// 
+//
 // This file is part of Ark Swift Crypto.
 //
 // (c) Ark Ecosystem <info@ark.io>
@@ -15,6 +15,10 @@ import BitcoinKit
 
 public class ArkTransaction {
 
+    //新主网修改
+    var nonce: UInt64?
+    var typeGroup: UInt32?
+    
     // Header
     var header: UInt8?
     var version: UInt8?
@@ -86,70 +90,78 @@ public class ArkTransaction {
     }
 
     public func toBytes(skipSignature: Bool = true, skipSecondSignature: Bool = true) -> [UInt8] {
+        //新主网修改
+       
+
         var bytes = [UInt8]()
-        bytes.append(UInt8.init(self.type!.rawValue))
-        var timestampBytes = pack(self.timestamp)
-        timestampBytes.removeLast() // Timestamp is 32bits (5 bytes), but only 4 bytes serialized
-        bytes.append(contentsOf: timestampBytes)
+        /*
+        comm部分
+        */
+        //头部 (写死)
+        let p:UInt8 = 0xFF
+        bytes.append(p)
+        print("ff:",Data(bytes: bytes).hex)
+        //version
+        bytes.append(self.version!)
+        print("version:",Data(bytes: bytes).hex)
+        //network
+        bytes.append(self.network!)
+        print("network:",Data(bytes: bytes).hex)
+        //typeGroup
+        var typeGroupBytes =  pack(self.typeGroup)
+        typeGroupBytes.removeLast()
+        bytes.append(contentsOf:typeGroupBytes)
+        print("typeGroup:",Data(bytes: bytes).hex)
+        //type
+        let type = UInt16(self.type!.rawValue)
+        bytes.append(contentsOf:pack(type))
+        print("type:",Data(bytes: bytes).hex)
+        //nonce 暂时写死，待会传进来
+        var nonceBytes = pack(self.nonce)
+        nonceBytes.removeLast()
+        bytes.append(contentsOf:nonceBytes)
+        print("nonce:",Data(bytes: bytes).hex)
+        //senderPublicKey
         bytes.append(contentsOf: [UInt8](Data.init(hex: self.senderPublicKey!)!))
-
-        let skipRecipient = self.type == .secondSignatureRegistration || self.type == .multiSignatureRegistration
-        if !skipRecipient && recipientId != nil {
-            bytes.append(contentsOf: base58CheckDecode(recipientId!)!)
-        } else {
-            bytes.append(contentsOf: [UInt8](repeating: 0, count: 21))
-        }
-
-        if vendorField != nil && (vendorField?.count)! <= 255 {
-            bytes.append(contentsOf: [UInt8](vendorField!.data(using: .utf8)!))
-            if (vendorField?.count)! < 64 {
-                bytes.append(contentsOf: [UInt8](repeating: 0, count: (64 - (vendorField?.count)!)))
-            }
-        } else {
-            bytes.append(contentsOf: [UInt8](repeating: 0, count: 64))
-        }
-
-        var transactionBytes = pack(self.amount)
-        transactionBytes.removeLast()
-        bytes.append(contentsOf: transactionBytes)
-
+        print("senderPublicKey:",Data(bytes: bytes).hex)
+        //fee
         var feeBytes = pack(self.fee)
         feeBytes.removeLast()
         bytes.append(contentsOf: feeBytes)
-
-        if self.type == .secondSignatureRegistration {
-            if let signature = self.asset!["signature"] as? [String: String] {
-                let publickey = signature["publicKey"]
-                bytes.append(contentsOf: [UInt8](Data.init(hex: publickey!)!))
-            }
-        } else if self.type == .delegateRegistration {
-            if let delegate = self.asset!["delegate"] as? [String: String] {
-                let username = delegate["username"]!
-                bytes.append(contentsOf: [UInt8](username.data(using: .utf8)!))
-            }
-        } else if self.type == .vote {
-            if let votes = self.asset!["votes"] as? [String] {
-                bytes.append(contentsOf: [UInt8](votes.joined().data(using: .utf8)!))
-            }
-        } else if self.type == .multiSignatureRegistration {
-            if let multisig = self.asset!["multisignature"] as? [String: Any] {
-                let min = multisig["min"] as! UInt8
-                let lifetime = multisig["lifetime"] as! UInt8
-                let keys = multisig["keysgroup"] as! [String]
-                bytes.append(min)
-                bytes.append(lifetime)
-                bytes.append(contentsOf: [UInt8](keys.joined().data(using: .utf8)!))
-            }
+        print("fee:",Data(bytes: bytes).hex)
+        
+        /*
+        vendorField部分
+        *** 暂时先处理不存在vendorField的部分
+        */
+        let vendorField:UInt8 = 0
+        bytes.append(vendorField)
+        print("fee:",Data(bytes: bytes).hex)
+        /*
+        typeBuffer部分
+        */
+        //amount
+        var amountBytes = pack(self.amount)
+        amountBytes.removeLast()
+        bytes.append(contentsOf: amountBytes)
+        print("amount:",Data(bytes: bytes).hex)
+        //expiration
+        var expirationBytes = pack(self.expiration)
+        expirationBytes.removeLast()
+        bytes.append(contentsOf: expirationBytes)
+        print("expiration:",Data(bytes: bytes).hex)
+        //recipientId
+        let recipientIdBytes = base58CheckDecode(recipientId!)!
+        bytes.append(contentsOf: recipientIdBytes)
+        print("recipientId:",Data(bytes: bytes).hex)
+        
+        let leftBytesCount = 33-amountBytes.count-expirationBytes.count -  recipientIdBytes.count;
+        if (leftBytesCount>0) {
+            bytes.append(contentsOf: [UInt8](repeating: 0, count: leftBytesCount))
         }
-
-        if !skipSignature && self.signature != nil {
-            bytes.append(contentsOf: [UInt8](Data.init(hex: self.signature!)!))
-        }
-
-        if !skipSecondSignature && self.secondSignature != nil {
-            bytes.append(contentsOf: [UInt8](Data.init(hex: self.secondSignature!)!))
-        }
-
+        
+        print("result:",Data(bytes: bytes).hex)
+        
         return bytes
     }
 
@@ -188,9 +200,10 @@ public class ArkTransaction {
         if let signSignature = self.signSignature {
             transactionDict["signSignature"] = signSignature
         }
-        if let timestamp = self.timestamp {
-            transactionDict["timestamp"] = timestamp
-        }
+        //新主网修改
+//        if let timestamp = self.timestamp {
+//            transactionDict["timestamp"] = timestamp
+//        }
         if let type = self.type {
             transactionDict["type"] = type.rawValue
         }
@@ -203,6 +216,17 @@ public class ArkTransaction {
         if let version = self.version {
             transactionDict["version"] = version
         }
+        if let expiration = self.expiration {
+            transactionDict["expiration"] = expiration
+        }
+        if let nonce = self.nonce {
+            transactionDict["nonce"] = nonce
+        }
+        if let typeGroup = self.typeGroup {
+            transactionDict["typeGroup"] = typeGroup
+        }
+        
+        
 
         return transactionDict
     }
