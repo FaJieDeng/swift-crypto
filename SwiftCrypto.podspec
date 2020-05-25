@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name = 'SwiftCrypto'
-  s.version = '0.2.0'
+  s.version = '0.3.1'
   s.license = 'MIT'
   s.summary = 'A simple Cryptography Implementation in Swift for the ARK Blockchain'
   s.homepage = 'https://github.com/ArkEcosystem/swift-crypto'
@@ -9,7 +9,7 @@ Pod::Spec.new do |s|
 
   s.ios.deployment_target = '10.0'
 
-  s.dependency 'BitcoinKit', '1.0.2'
+  s.dependency 'BitcoinKit', '1.1.0'
 
   s.source_files = 'Crypto/Crypto/**/*.swift'
 end

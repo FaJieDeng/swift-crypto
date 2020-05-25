@@ -1,4 +1,4 @@
-// 
+//
 // This file is part of Ark Swift Crypto.
 //
 // (c) Ark Ecosystem <info@ark.io>
@@ -20,8 +20,10 @@ public class ArkBuilder {
     ///   - amount: the amount of the transfer
     ///   - vendorField: an optional message included in the transfer
     /// - Returns: a signed ArkTransaction
-    public static func buildTransfer(_ passphrase: String, secondPassphrase: String?, to recipient: String, amount: UInt64, vendorField: String?) -> ArkTransaction {
+    //新主网修改
+    public static func buildTransfer(_ passphrase: String, secondPassphrase: String?,nonce:UInt64, to recipient: String, amount: UInt64, vendorField: String?) -> ArkTransaction {
         var transaction = createBaseTransaction(forType: .transfer)
+        transaction.nonce = nonce
         transaction.recipientId = recipient
         transaction.amount = amount
         transaction.vendorField = vendorField
@@ -154,6 +156,12 @@ public class ArkBuilder {
         let transaction = ArkTransaction()
         transaction.type = txType
         transaction.fee = Fee.shared.get(forType: txType)
+        //新主网修改
+        transaction.version = 2
+        transaction.expiration = 0
+        transaction.typeGroup = 1
+        transaction.network = ArkNetwork.shared.get().version()
+        
         return transaction
     }
 }
